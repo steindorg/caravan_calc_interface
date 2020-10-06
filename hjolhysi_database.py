@@ -61,5 +61,3 @@ engine = create_engine('sqlite:///hobby_hjolhysi.db')
 # Create all tables in the engine: "Create Table" statements in raw SQL.
 Base.metadata.create_all(engine)
 
-eal with strange error messages, try deleting your SQL tables before running your app again whenever making changes to a model.
-"""
