@@ -3,7 +3,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy import update
 from sqlalchemy.ext.declarative import declarative_base
 import crud_exceptions as crud_exc
-from hjolhysi_database import Base, Hobby_flokkar, Hobby_hjolhysi,  Aukahlutir, Hjolhysi_aukahlutir, Vidskiptavinir, Vidhengi, Heimilisfang
+from hjolhysi_com_database import Base, Hobby_flokkar, Hobby_hjolhysi,  Aukahlutir, Hjolhysi_aukahlutir, Vidskiptavinir, Vidhengi, Heimilisfang
 
 
 engine = create_engine('sqlite:///hobby_hjolhysi.db')

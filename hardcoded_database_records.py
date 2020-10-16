@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
  
-from hjolhysi_database import Hobby_flokkar, Hobby_hjolhysi, Base, Aukahlutir, Hjolhysi_aukahlutir, Vidskiptavinir, Heimilisfang, Vidhengi
+from hjolhysi_com_database import Hobby_flokkar, Hobby_hjolhysi, Base, Aukahlutir, Hjolhysi_aukahlutir, Vidskiptavinir, Heimilisfang, Vidhengi
 
 engine = create_engine('sqlite:///hobby_hjolhysi.db')
 # Bind the engine to the metadata of the Base class 

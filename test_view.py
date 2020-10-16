@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 from tkinter import font as tkFont
-import hobby_query_funcs as get_db_data
+import controller_crud as get_db_data
 import calc_functions as calc
 
 ############################ CheckBox Class og functions fyrir aukahluti  Hobby útreikningar 
