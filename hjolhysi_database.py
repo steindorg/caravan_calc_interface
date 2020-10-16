@@ -9,6 +9,31 @@ from sqlalchemy import create_engine
 #Base
 Base = declarative_base()
 
+
+class Vidskiptavinir(Base):
+    __tablename__ = 'vidskiptavinir'
+    id = Column(Integer, primary_key=True)
+    eiginnafn = Column(String(250), nullable=False)
+    eftirnafn = Column(String(250), nullable=False)
+    kt = Column(String(10), nullable=False)
+    simi = Column(String(7), nullable=False)
+    email = Column(String(250), nullable=True)
+    heimilisfang = relationship('Heimilisfang', backref='vidskiptavinir')
+
+class Heimilisfang(Base):
+    __tablename__ = 'heimilisfang'
+    id = Column(Integer, primary_key=True)
+    heimilisfang = Column(String(250), nullable=False)
+    postnumer = Column(String(3), nullable=False)
+    vidskiptavinur_id = Column(Integer, ForeignKey('vidskiptavinir.id'))
+    
+
+class Vidhengi(Base):
+    __tablename__ = 'vidhengi'
+    id = Column(Integer, primary_key=True)
+    skra = Column(String(250), nullable=False)
+
+
 class Hobby_flokkar(Base):
     __tablename__ = 'hobby_flokkar'
     id = Column(Integer, primary_key=True)
@@ -47,12 +72,9 @@ class Hjolhysi_aukahlutir(Base):
     lighting = Column(String(50), nullable=False)
     heating_air_condition = Column(String(50), nullable=False)
     multimedia = Column(String(50), nullable=False)
-    country_specs = Column(String(50), nullable=False)
+    country_specifications = Column(String(50), nullable=False)
     hjolhysi = relationship(Hobby_hjolhysi)
     
-
-#TO Do CRUD vinnsla og módel fyrir vv
-
 
 
 # Create an engine that stores data in the local directory's
