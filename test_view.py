@@ -286,7 +286,7 @@ class birta_vv():
         self.breyta_vv.but.grid_remove()
     
     def breyta_vv_callback(self):
-        print('breyta nigguzzz')
+        print('breyta callback')
        
         
 
@@ -331,8 +331,8 @@ velja_hjolhysi( velja_hjolhysi_frame, aukahlutir_frame, stillingar_frame, hjolhy
 glugga_val = tk.LabelFrame( vidskiptavinur_tab)
 glugga_val.grid(column = 0, row = 0)
 glugga_val.grid_configure(padx=8,pady=8)
-button( glugga_val , 'Skrá Viðskiptavin ', 20, 0, 0, lambda : print('yo'), 2, 2)
-button( glugga_val , 'Finna ', 20, 1, 0, lambda : print('yo'), 2, 2)
+button( glugga_val , 'Skrá Viðskiptavin ', 20, 0, 0, lambda : print('skra lambda func'), 2, 2)
+button( glugga_val , 'Finna ', 20, 1, 0, lambda : print('test lambda func'), 2, 2)
 
 skra_vv_frame = tk.LabelFrame( vidskiptavinur_tab, text = " Skrá Viðskiptavin ")
 skra_vv_frame.grid(column = 0, row = 1)
