@@ -3,10 +3,10 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy import update
 from sqlalchemy.ext.declarative import declarative_base
 import crud_exceptions as crud_exc
-from hjolhysi_com_database import Base, Hobby_flokkar, Hobby_hjolhysi,  Aukahlutir, Hjolhysi_aukahlutir, Vidskiptavinir, Vidhengi, Heimilisfang
+from new_data_base_schema_test import Base, Viðskiptavinir, Heimilisfang, Netfang, Símanúmer, Framleiðandi, Vöruflokkar, Vörutegund, Vara, Tengiliður, Aukahlutir, Aukahlutir_tegund
+from sqlalchemy import inspect
 
-
-engine = create_engine('sqlite:///hobby_hjolhysi.db')
+engine = create_engine('sqlite:///test_relations.db')
 # Bind the engine to the metadata of the Base class 
 Base.metadata.bind = engine
 
@@ -15,143 +15,447 @@ DBSession = sessionmaker(bind=engine)
 
 session = DBSession()
 
-def get_flokkar():
-    flokkar = session.query(Hobby_flokkar).all()
-    flokkar_array = []
-    for items in flokkar:
-        flokkar_array.append(items.nafn)
-    return flokkar_array
 
-def get_all_hjolhysi_by_flokkar(flokkur):
-    on_tour_hjolhysi = session.query(Hobby_hjolhysi).join(Hobby_flokkar).filter(Hobby_flokkar.nafn == flokkur).all()
-    hjolhysi_array = []
-    for item in on_tour_hjolhysi:
-        hjolhysi_array.append(item.nafn)
-    return hjolhysi_array
 
-def get_all_hjolhysi_id_by_flokkar(flokkur):
-    on_tour_hjolhysi = session.query(Hobby_hjolhysi).join(Hobby_flokkar).filter(Hobby_flokkar.nafn == flokkur).all()
-    hjolhysi_array = []
-    for item in on_tour_hjolhysi:
-        hjolhysi_array.append(item.id)
-    return hjolhysi_array
+def get_vöruflokkur_nafn( nafn ):
+    if session.query(Vöruflokkar).filter(Vöruflokkar.nafn==nafn).first():
+        return session.query(Vöruflokkar).filter(Vöruflokkar.nafn==nafn).first()
+    else:
+        raise crud_exc.ItemNotStored('"{}" Vöruflokkur er ekki á skrá'.format( nafn ))
 
-def get_hjolhysi_price_by_name(nafn):
-    return session.query(Hobby_hjolhysi).filter(Hobby_hjolhysi.nafn==nafn).first().verð
+def get_vörutegund_nafn( nafn ):
+    if session.query(Vörutegund).filter(Vörutegund.nafn==nafn).first():
+        return session.query(Vörutegund).filter(Vörutegund.nafn==nafn).first()
+    else:
+        raise crud_exc.ItemNotStored('"{}" Vörutegund er ekki á skrá'.format( nafn ))
 
-def get_hjolhysi_price_by_name_flokkur(nafn, flokkur):
-    return session.query(Hobby_hjolhysi).join(Hobby_flokkar).filter(Hobby_flokkar.nafn == flokkur).filter(Hobby_hjolhysi.nafn==nafn).first().verð
-
-def get_hjolhysi_id_by_name_flokkur(nafn, flokkur):
-    return session.query(Hobby_hjolhysi).join(Hobby_flokkar).filter(Hobby_flokkar.nafn == flokkur).filter(Hobby_hjolhysi.nafn==nafn).first().id
-
-def get_aukahlutir(hjolhysi, aukahlutur_tegund):
-    return 0
-
-def get_aukahlutir_by_hjolhysi_id(id):
-    _this = session.query(Hjolhysi_aukahlutir).join(Hobby_hjolhysi).filter(Hobby_hjolhysi.id==id).first()
-    return _this
-
-def get_price_aukahlutir_by_tegund(tegund):
+def get_vörutegundir_by_vöruflokkur( nafn ):
     tmp_arr = []
-    tmp_query = session.query(Aukahlutir).filter(Aukahlutir.tegund==tegund).all()
-    for items in tmp_query:
-        tmp_arr.append(items.verð)
+    get_all = session.query(Vörutegund).join(Vöruflokkar).\
+        filter(Vöruflokkar.nafn == nafn).all()
+    if get_all:
+        for item in get_all:
+            tmp_arr.append(item.nafn)
+        return tmp_arr 
+    else:
+        raise crud_exc.ItemNotStored('"{}" Vöruflokkur er ekki á skrá'.format( nafn ))
+
+
+
+def get_attributes_vörur_by_vörutegund( vörutegund, attribute ):
+    tmp_arr = []
+    get_all = session.query(Vara).join(Vörutegund).\
+        filter(Vörutegund.nafn == vörutegund ).all()
+    if get_all:
+        for item in get_all:
+            tmp_arr.append( getattr( item, attribute ) ) 
+        return tmp_arr
+    else:
+        raise crud_exc.ItemNotStored('"{}" Vörutegund er ekki á skrá'.format( nafn ))
+
+
+def get_values_aukahlutir_by_tegund_array(tegund, attribute):
+    tmp_arr = []
+    get_all = session.query(Aukahlutir).join(Aukahlutir_tegund).\
+        filter(Aukahlutir_tegund.nafn == tegund ).all()
+    if get_all:
+        for item in get_all:
+            tmp_arr.append( getattr( item, attribute ) ) 
+        return tmp_arr
+    else:
+        raise crud_exc.ItemNotStored('"{}" Tegund aukahlutar er ekki á skrá'.format( tegund ))
+
+def get_framleiðandi_nafn(nafn):
+    if session.query(Framleiðandi).filter(Framleiðandi.nafn==nafn).first():
+        return session.query(Framleiðandi).filter(Framleiðandi.nafn==nafn).first()
+    else:
+        raise crud_exc.ItemNotStored('"{}" Framleiðandi er ekki á skrá'.format( nafn ))
+
+def get_framleiðendur():
+    fr = session.query(Framleiðandi).all()
+    tmp_arr = []
+    if fr:
+        for item in fr:
+            tmp_arr.append(item.nafn )       
+        return tmp_arr
+    else:
+        raise crud_exc.ItemNotStored('"{}" Engir framleiðendur til á skrá'.format( '' ))
+
+def get_vöruflokkar():
+    vf = session.query(Vöruflokkar).all()
+    tmp_arr = []
+    if vf:
+        for item in vf:
+            tmp_arr.append(item.nafn )       
+        return tmp_arr
+    else:
+        raise crud_exc.ItemNotStored('"{}" Engir Vöruflokkar til á skrá'.format( '' ))
+
+#print( get_vöruflokkar())
+
+def get_vara_by_tegund(vara, tegund):
+    vara = session.query(Vara).join(Vörutegund).\
+        filter(Vörutegund.nafn == tegund ).filter(Vara.nafn==vara).first()
+    if vara:
+        return vara
+    else:
+        raise crud_exc.ItemNotStored('"{}" Vara er ekki á skrá'.format( tegund ))
+
+def get_attr_vara_by_tegund(vara, tegund, attribute):
+    vara = session.query(Vara).join(Vörutegund).\
+        filter(Vörutegund.nafn == tegund ).filter(Vara.nafn==vara).first()
+    if vara:
+        return getattr(vara, attribute)
+    else:
+        raise crud_exc.ItemNotStored('"{}" Vara er ekki á skrá'.format( tegund ))
+
+def get_aukahlutur_tegund(nafn):
+    if session.query(Aukahlutir_tegund).filter(Aukahlutir_tegund.nafn==nafn).first():
+        return session.query(Aukahlutir_tegund).filter(Aukahlutir_tegund.nafn==nafn).first()
+    else:
+        raise crud_exc.ItemNotStored('"{}" Tegund er ekki á skrá'.format( nafn ))
+
+def get_all_aukahlutur_tegund():
+        return session.query(Aukahlutir_tegund).all()
+
+def get_aukahlutir_vara_flokkur_tegund( nafn, tegund, aukahlutur_tegund):
+    vara = get_vara_by_tegund( nafn,tegund )
+    #print(vara.aukahlutir)
+    tmp_arr = []
+    for item in vara.aukahlutir:
+        if( item.aukahlutur_tegund.nafn == aukahlutur_tegund):
+            tmp_arr.append( { 'Lýsing': item.lýsing, 'Verð': item.verð } )
+        else:
+            tmp_arr = 'Aukahlutur ekki til fyrir þessa tegund af vöru'
     return tmp_arr
 
-def get_lysing_aukahlutir_by_tegund(tegund):
+def get_aukahlutir_vara_flokkur_tegund( nafn, tegund, aukahlutur_tegund):
+    vara = get_vara_by_tegund( nafn,tegund )
+    #print(vara.aukahlutir)
     tmp_arr = []
-    tmp_query = session.query(Aukahlutir).filter(Aukahlutir.tegund==tegund).all()
-    for items in tmp_query:
-        tmp_arr.append(items.lysing)
+    for item in vara.aukahlutir:
+        if( item.aukahlutur_tegund.nafn == aukahlutur_tegund):
+            tmp_arr.append( {'Lýsing': item.lýsing, 'Verð': item.verð } )
+  
+        else:
+            tmp_arr = 'Aukahlutur ekki til fyrir þessa tegund af vöru'
     return tmp_arr
 
-def get_aukahlutir_by_tegund(tegund):
-    tmp_arr = []
-    tmp_query = session.query(Aukahlutir).filter(Aukahlutir.tegund==tegund).all()
-    for items in tmp_query:
-        tmp_arr.append(items.lysing)
-    return tmp_arr
 
-def get_aukahlutir_tegund():
-    tmp_arr = []
-    tmp_query = session.query(Aukahlutir).distinct(Aukahlutir.tegund).group_by(Aukahlutir.tegund).all()
-    for items in tmp_query:
-        tmp_arr.append(items.tegund)
-    return tmp_arr
- 
-def bua_til_vidskiptavin(eiginnafn, eftirnafn, kt, simi, email, heimilisfang, postnumer ):
-    if(session.query(Vidskiptavinir).filter(Vidskiptavinir.kt==kt).all()):
+def bua_til_framleiðanda(nafn, tengiliður_nafn, tengiliður_eftirnafn, tengiliður_sími, tengiliður_netfang):
+    if(session.query(Framleiðandi).filter(Framleiðandi.nafn==nafn).all()):
+
+        raise crud_exc.ItemAlreadyStored('"{}" Framleiðandi er nú þegar á skrá!'.format(nafn))
+    
+    add_framleiðandi = Framleiðandi( nafn = nafn)
+    add_framleiðandi.tengiliðir = [ Tengiliður(
+        eiginnafn = tengiliður_nafn,
+        eftirnafn = tengiliður_eftirnafn
+        )]
+    add_framleiðandi.tengiliðir[0].netföng = [ Netfang( netfang = tengiliður_netfang) ]
+    add_framleiðandi.tengiliðir[0].símanúmer = [ Símanúmer( símanúmer = tengiliður_sími) ]
+    print(add_framleiðandi.tengiliðir)
+    session.add( add_framleiðandi  )   
+    session.commit()
+
+def breyta_framleiðanda(nafn, tengiliður_nafn, tengiliður_eftirnafn, tengiliður_sími, tengiliður_netfang):
+    fr = session.query(Framleiðandi).filter(Framleiðandi.nafn==nafn).first()
+    if fr:
+        fr.nafn = nafn
+        fr.tengiliðir[0].eiginnafn = tengiliður_nafn
+        fr.tengiliðir[0].eftirnafn = tengiliður_eftirnafn
+        fr.tengiliðir[0].netföng[0].netfang = tengiliður_netfang
+        fr.tengiliðir[0].símanúmer[0].símanúmer = tengiliður_sími
+                 
+    else:
+        raise crud_exc.ItemNotStored('"{}" Framleiðandi er ekki á skrá'.format(nafn))
+
+    session.commit()
+
+def delete_framleiðandi(nafn):
+    fr = session.query(Framleiðandi).filter(Framleiðandi.nafn==nafn).first()
+    if fr:
+        session.delete(fr)
+        session.commit()            
+    else:
+        raise crud_exc.ItemNotStored('"{}" Framleiðandi er ekki á skrá'.format(nafn))
+
+def birta_framleiðanda(nafn):
+    fr = session.query(Framleiðandi).filter(Framleiðandi.nafn==nafn).all()
+    if fr:
+        if(len(fr) == 1 ):
+            tmp_array = []
+            for k in fr:
+                tmp_array.append({
+                    'nafn': k.nafn,
+                    'tengiliður eiginnafn': k.tengiliðir[0].eiginnafn, 
+                    'tengiliður eftirnafn': k.tengiliðir[0].eftirnafn, 
+                    'sími': k.tengiliðir[0].símanúmer[0].símanúmer, 
+                    'email': k.tengiliðir[0].netföng[0].netfang
+                    })
+            return tmp_array[0]            
+    else:
+        raise crud_exc.ItemNotStored('"{}" Framleiðandi er ekki á skrá'.format(nafn))
+   
+def bua_til_vöruflokk(nafn):
+    if(session.query(Vöruflokkar).filter(Vöruflokkar.nafn==nafn).all()):  
+        raise crud_exc.ItemAlreadyStored('"{}" Vöruflokkur er nú þegar á skrá!'.format(nafn))
+    
+    add_vöruflokkur = Vöruflokkar( nafn = nafn)
+    session.add( add_vöruflokkur  )   
+    session.commit()
+
+def breyta_vöruflokk(nafn):
+    vf= session.query(Vöruflokkar).filter(Vöruflokkar.nafn==nafn).first()
+    if vf:
+        vf.nafn = nafn             
+    else:
+        raise crud_exc.ItemNotStored('"{}" Vöruflokkur er ekki á skrá'.format(nafn))
+
+    session.commit()
+
+def delete_vöruflokkur(nafn):
+    vf = session.query(Vöruflokkar).filter(Vöruflokkar.nafn==nafn).first()
+    if vf:
+        session.delete( vf )
+        session.commit()            
+    else:
+        raise crud_exc.ItemNotStored('"{}" Vöruflokkur er ekki á skrá'.format(nafn))
+
+def birta_vöruflokk(nafn):
+    vf = session.query(Vöruflokkar).filter(Vöruflokkar.nafn==nafn).all()
+    if vf:
+        if(len(vf) == 1 ):
+            tmp_array = []
+            for k in vf:
+                tmp_array.append({
+                    'nafn': k.nafn,
+                    })
+            return tmp_array[0]            
+    else:
+        raise crud_exc.ItemNotStored('"{}" Vöruflokkur er ekki á skrá'.format(nafn))
+
+def bua_til_vörutegund(nafn, vöruflokkur, framleiðandi):
+    if(session.query(Vörutegund).filter(Vörutegund.nafn==nafn).all()): 
+        raise crud_exc.ItemAlreadyStored('"{}" Vörutegund er nú þegar á skrá!'.format(nafn))
+    
+    add_vörutegund = Vörutegund( nafn = nafn)
+    add_vörutegund.framleiðandi = get_framleiðandi_nafn( framleiðandi ) 
+    add_vörutegund.vöruflokkur =  get_vöruflokkur_nafn( vöruflokkur ) 
+    session.add( add_vörutegund  )   
+    session.commit()
+
+def breyta_vörutegund(nafn, vöruflokkur, framleiðandi):
+    vt = session.query(Vörutegund).filter(Vörutegund.nafn==nafn).first()
+    if vt:
+        vt.nafn = nafn
+        vt.framleiðandi = get_framleiðandi_nafn( framleiðandi )
+        vt.vöruflokkur  = get_vöruflokkur_nafn( vöruflokkur )              
+    else:
+        raise crud_exc.ItemNotStored('"{}" Vörutegund er ekki á skrá'.format(nafn))
+
+    session.commit()
+
+def delete_vörutegund(nafn):
+    vt = session.query(Vörutegund).filter(Vörutegund.nafn==nafn).first()
+    if vt:
+        session.delete( vt )
+        session.commit()            
+    else:
+        raise crud_exc.ItemNotStored('"{}" Vörutegund er ekki á skrá'.format(nafn))
+
+def birta_vörutegundir():
+    vt = session.query(Vörutegund).filter(Vörutegund.nafn==nafn).all()
+    if vt:
+        tmp_array = []
+        for k in vt:
+            tmp_array.append({
+                'nafn': k.nafn,
+                })
+        return tmp_array            
+    else:
+        raise crud_exc.ItemNotStored('"{}" Vörutegund er ekki á skrá'.format(nafn))
+
+
+def bua_til_vöru(nafn, verð, vörutegund):
+    if session.query(Vara).join(Vörutegund).\
+        filter(Vörutegund.nafn == vörutegund).filter(Vara.nafn==nafn).all():
+        raise crud_exc.ItemAlreadyStored('"{}" Vara er nú þegar á skrá!'.format(nafn))
+    
+    add_tegund = session.query( Vörutegund ).filter( Vörutegund.nafn == vörutegund ).first()
+    add_tegund.vörur = [ Vara(nafn = nafn, verð = verð ) ]
+    session.add( add_tegund )
+    session.commit()
+
+def breyta_vöru(nafn, verð, vörutegund):
+    vara = session.query(Vara).join(Vörutegund).filter(Vörutegund.nafn == vörutegund).filter(Vara.nafn==nafn).first()
+    if vara:
+        vara.nafn = nafn
+        vara.verð = verð
+        vara.vörutegundir = get_vörutegund_nafn( vörutegund )              
+    else:
+        raise crud_exc.ItemNotStored('"{}" Vara er ekki á skrá'.format(nafn))
+
+    session.commit()
+
+def delete_vara(nafn, vörutegund):
+    vara = session.query(Vara).join(Vörutegund).filter(Vörutegund.nafn == vörutegund).filter(Vara.nafn==nafn).first()
+    if vara:
+        session.delete( vara )
+        session.commit()              
+    else:
+        raise crud_exc.ItemNotStored('"{}" Vara er ekki á skrá'.format(nafn))
+
+    session.commit()
+
+def birta_vörur(nafn,vörutegund):
+    vara = session.query(Vara).join(Vörutegund).filter(Vörutegund.nafn == vörutegund).all()
+    if vara:
+        tmp_array = []
+        for k in vara:
+            tmp_array.append({
+                'nafn': k.nafn,
+                'verð': k.verð,
+                })
+        return tmp_array            
+    else:
+        raise crud_exc.ItemNotStored('"{}" Vörutegund er ekki á skrá'.format(nafn))
+
+
+def bua_til_aukahlut_tegund(nafn, vöruflokkur):
+    if session.query(Aukahlutir_tegund).filter(Aukahlutir_tegund.nafn==nafn).all():
+        raise crud_exc.ItemAlreadyStored('"{}" Tegund er nú þegar á skrá'.format(nafn))
+
+    add_tegund = Aukahlutir_tegund(nafn=nafn)
+    add_tegund.vöruflokkur = get_vöruflokkur_nafn( vöruflokkur )
+    session.add( add_tegund  )
+    session.commit()
+
+def breyta_aukahlut_tegund(nafn, vöruflokkur):
+    tegund = session.query(Aukahlutir_tegund).filter(Aukahlutir_tegund.nafn==nafn).all()
+    if tegund:
+        tegund.nafn = nafn
+        tegund.vöruflokkur = verð
+        tegund.vöruflokkur = get_vöruflokkur_nafn( vöruflokkur )              
+    else:
+        raise crud_exc.ItemNotStored('"{}" Tegund aukahlutar er ekki á skrá'.format(nafn))
+
+    session.commit()
+
+def delete_aukahlut_tegund(nafn):
+    tegund = session.query(Aukahlutir_tegund).filter(Aukahlutir_tegund.nafn==nafn).all()
+    if tegund:
+        session.delete( tegund )
+        session.commit()              
+    else:
+        raise crud_exc.ItemNotStored('"{}" Tegund aukahlutar er ekki á skrá'.format(nafn))
+
+    session.commit()
+
+def birta_aukahluti_vara(vara, vörutegund, aukahlutur_tegund ):
+    get_aukahlutir_vara_flokkur_tegund( vara, vörutegund, aukahlutur_tegund)
+
+def bua_til_aukahlut(lýsing, verð, tegund):
+    add_aukahlutur = Aukahlutir( lýsing = lýsing, verð = verð)
+    add_aukahlutur.aukahlutur_tegund = get_aukahlutur_tegund( tegund )
+    session.add( add_aukahlutur )
+    session.commit()
+
+def breyta_aukahlut(id_in, lýsing, verð, tegund):
+    aukahlutur = session.query(Aukahlutir).filter(Aukahlutir.id==id_in).all()
+    if aukahlutur:
+        aukahlutur.lýsing = lýsing
+        aukahlutur.verð = verð
+        aukahlutur.aukahlutur_tegund = get_aukahlutur_tegund( tegund )
+    else:
+        raise crud_exc.ItemNotStored('"{}" aukahlutur með id ekki á skrá'.format(id_in))
+    session.commit()
+
+def delete_aukahlutur(id_in):
+    aukahlutur = session.query(Aukahlutir).filter(Aukahlutir.id==id_in).all()
+    if tegund:
+        session.delete( tegund )
+        session.commit()              
+    else:
+        raise crud_exc.ItemNotStored('"{}" Tegund aukahlutar er ekki á skrá'.format(id_in))
+
+    session.commit()
+
+
+def add_aukahlutur_to_vara(vara, vörutegund, tegund):
+    add_to_vara = session.query(Vara).join(Vörutegund).\
+        filter(Vörutegund.nafn == vörutegund).filter(Vara.nafn == vara).first() 
+    if add_to_vara:
+        # Fill here functionality
+        add_to_vara.aukahlutir =  get_aukahlutur_tegund( tegund ).aukahlutir 
+        session.commit()
+    
+    else:
+        raise crud_exc.ItemNotStored ('"{}" Vara er ekki til á skrá!'.format(vara))
+
+def bua_til_vidskiptavin(eiginnafn, eftirnafn, kt, simi, netfang, heimilisfang, postnumer ):
+    if(session.query(Viðskiptavinir).filter(Viðskiptavinir.kt==kt).all()):
         
         raise crud_exc.ItemAlreadyStored('"{}" Viðskiptavinur með þessa kennitölu er nú þegar á skrá!'.format(kt))
     
     else:
-        bua_til_vv = Vidskiptavinir( 
+        add_user = Viðskiptavinir( 
             eiginnafn = "".join(eiginnafn.split() ),  
             eftirnafn = "".join(eftirnafn.split() ),  
-            kt = "".join(kt.split()),  
-            simi = "".join(simi.split()),  
-            email = "".join(email.split()) 
-            )
-        hf = Heimilisfang( 
-            heimilisfang = "".join(heimilisfang.split()), 
-            postnumer = "".join(postnumer.split() ) ) 
-        bua_til_vv.heimilisfang.append( hf )
-        session.add_all( [ bua_til_vv, hf ] )
-        session.commit()
+            kt = "".join(kt.split()))
+            
+        add_user.heimilisföng = [ Heimilisfang(
+            heimilisfang = "".join(heimilisfang.split()),  
+            póstnúmer = "".join(postnumer.split() ) 
+            )]
 
-
-def breyta__vidskiptavin(eiginnafn, eftirnafn, kt, simi, email, heimilisfang, postnumer):
-    vv = session.query(Vidskiptavinir).filter(Vidskiptavinir.eiginnafn==eiginnafn).all()
-    
-    if vv:
-        if(len(vv) == 1 ):
-            vv[0].eiginnafn = eiginnafn
-            vv[0].eftirnafn = eftirnafn
-            vv[0].kt = kt
-            vv[0].simi = simi
-            vv[0].email = email
-            #heimilisfang = session.query(Heimilisfang).join(Vidskiptavinir).filter(Vidskiptavinir.id==vv[0].id).first()
-            vv[0].heimilisfang[0].postnumer = postnumer
-            vv[0].heimilisfang[0].heimilisfang = heimilisfang
-            #vv[0].heimilisfang.append( heimilisfang )
+        add_user.símanúmer = [ Símanúmer( símanúmer = "".join(simi.split()))]
         
-        else:
-            return vv_allir
+        add_user.netföng = [Netfang( netfang = "".join(netfang.split()))]
+        
+        session.add( add_user  )
+        
+        session.commit()
+    return add_user
+
+
+def breyta_viðskiptavin(eiginnafn, eftirnafn, kt, simi, email, heimilisfang, postnumer):
+    vv = session.query(Viðskiptavinir).filter(Viðskiptavinir.kt==kt).first()
+    if vv:
+        vv.eiginnafn = eiginnafn
+        vv.eftirnafn = eftirnafn
+        vv.kt = kt
+        vv.símanúmer[0].símanúmer = simi
+        vv.netföng[0].netfang = email
+        vv.heimilisföng[0].póstnúmer = postnumer
+        vv.heimilisföng[0].heimilisfang = heimilisfang
                  
     else:
-        raise crud_exc.ItemAlreadyStored('"{}" Viðskiptavinur er ekki á skrá'.format(eiginnafn))
+        raise crud_exc.ItemNotStored('"{}" Viðskiptavinur er ekki á skrá'.format(eiginnafn))
 
     session.commit()
-    
-def eyda_vidskiptavin(kt):
-    vv = session.query(Vidskiptavinir).filter(Vidskiptavinir.kt==kt).all()
-    if vv:
-        heimilisfang = session.query(Heimilisfang).join(Vidskiptavinir).filter(Vidskiptavinir.kt==vv[0].kt).first()
-        session.delete(heimilisfang)
-        session.delete(vv[0])
-        session.commit()
-    else:
-        raise crud_exc.ItemAlreadyStored(' Viðskiptavinur með kennitölu "{}" er ekki á skrá '.format(kt))
-    return 0
 
+"""
 def birta_alla_vidskiptavini():
-    vv_listi = enumerate([ item for item in session.query(Vidskiptavinir).all()])
+    vv_listi = enumerate([ item for item in session.query(Viðskiptavinir).all()])
     tmp_array = []
     for i, k in vv_listi:
         tmp_array.append({
             'eiginnafn': k.eiginnafn, 
             'eftirnafn': k.eftirnafn,
             'kennitala': k.kt,  
-            'sími': k.simi, 
-            'email': k.email , 
-            'heimilisfang': k.heimilisfang[0].heimilisfang,
-            'póstnúmer': k.heimilisfang[0].postnumer  })
+            'sími': k.símanúmer[0].símanúmer, 
+            'email': k.netföng[0].netfang , 
+            'heimilisfang': k.heimilisföng[0].heimilisfang,
+            'póstnúmer': k.heimilisföng[0].póstnúmer  })
     return tmp_array
+ """ 
 
+def birta_alla_vidskiptavini():
+    return session.query(Viðskiptavinir).all() 
+  
 def birta_vidskiptavin(eiginnafn):
-    vv = session.query(Vidskiptavinir).filter(Vidskiptavinir.eiginnafn==eiginnafn).all()
-    print(len(vv))
+    vv = session.query(Viðskiptavinir).filter(Viðskiptavinir.eiginnafn==eiginnafn).all()
     if vv:
         if(len(vv) == 1 ):
             tmp_array = []
@@ -160,11 +464,11 @@ def birta_vidskiptavin(eiginnafn):
                     'eiginnafn': k.eiginnafn, 
                     'eftirnafn': k.eftirnafn,
                     'kennitala': k.kt,  
-                    'sími': k.simi, 
-                    'email': k.email , 
-                    'heimilisfang': k.heimilisfang[0].heimilisfang,
-                    'póstnúmer': k.heimilisfang[0].postnumer  })
-            return tmp_array
+                    'sími': k.símanúmer[0].símanúmer, 
+                    'email': k.netföng[0].netfang , 
+                    'heimilisfang': k.heimilisföng[0].heimilisfang,
+                    'póstnúmer': k.heimilisföng[0].póstnúmer  })
+            return tmp_array[0]
           
         
         else:
@@ -174,14 +478,165 @@ def birta_vidskiptavin(eiginnafn):
                     'eiginnafn': k.eiginnafn, 
                     'eftirnafn': k.eftirnafn,
                     'kennitala': k.kt,  
-                    'sími': k.simi, 
-                    'email': k.email , 
-                    'heimilisfang': k.heimilisfang[0].heimilisfang,
-                    'póstnúmer': k.heimilisfang[0].postnumer  })
+                    'sími': k.símanúmer[0].símanúmer, 
+                    'email': k.netföng[0].netfang , 
+                    'heimilisfang': k.heimilisföng[0].heimilisfang,
+                    'póstnúmer': k.heimilisföng[0].póstnúmer  })
             return tmp_array
                  
     else:
-        raise crud_exc.ItemAlreadyStored('"{}" Viðskiptavinur er ekki á skrá'.format(eiginnafn))
+        raise crud_exc.ItemNotStored('"{}" Viðskiptavinur er ekki á skrá'.format(eiginnafn))
+
+def eyda_vidskiptavin(kt):
+    vv = session.query(Viðskiptavinir).filter(Viðskiptavinir.kt==kt).first()
+    if vv:
+        session.delete(vv)
+        session.commit()
+        print("Eyði Viðskiptavin", vv)
+
+    else:
+        raise crud_exc.ItemNotStored(' Viðskiptavinur með kennitölu "{}" er ekki á skrá '.format(kt))
+    return 0
+
+#a_dict = get_aukahlutir_vara_flokkur_tegund('SF 390','On Tour','Chassis')[0]
+#print( a_dict.get('Lýsing') )
+
+#print( get_attr_vara_by_tegund('SF 390', 'On Tour','verð') )
+
+
+############### Test Records
+#breyta_viðskiptavin( "Halldór", "Jónsson", "2805807109", "8212651", "dude@gmail.com", "Mávahlíð 181", "105")
+#print(birta_vidskiptavin("Jóna"))
+#eyda_vidskiptavin("2811104378")
+#print(session.query(Vara).all())
+#vv = session.query(Viðskiptavinir).get(1)
+#vara = session.query(Vara).get(1)
+#vv.vörur = [ vara ]
+#print(vv.vörur[0].verð)
+#print(vv)
+#bua_til_vidskiptavin( "Halldór", "Jónsson", "2805807109", "8212651", "dude@gmail.com", "Mávahlíð 11", "105")
+"""
+bua_til_vöruflokk('Hjólhýsi')
+bua_til_vöruflokk('Hjólhýsa Drif')
+bua_til_vöruflokk('Tjöld')
+bua_til_framleiðanda('Trigano','Nina', 'Hansen','3456789', 'ert@doo.com', ' Hanover', '2345-3455')
+bua_til_framleiðanda('Hobby','Sonia', 'Schmidt','345458', 'ss@hobby.com', 'Hambourg', 'e945-t455')
+bua_til_vörutegund('On Tour', 'Hjólhýsi','Hobby' )
+bua_til_vörutegund('Deluxe', 'Hjólhýsi','Hobby' )
+bua_til_vörutegund('Deluxe Edition', 'Hjólhýsi','Hobby' )
+bua_til_vörutegund('Excellent', 'Hjólhýsi','Hobby' )
+bua_til_vörutegund('Prestige', 'Hjólhýsi','Hobby' )
+bua_til_vörutegund('Premium', 'Hjólhýsi','Hobby' )
+bua_til_vöru('SF 390', '15700', 'On Tour')
+
+bua_til_aukahlut_tegund('Chassis', 'Hjólhýsi')
+bua_til_aukahlut_tegund('Load Capacity', 'Hjólhýsi')
+bua_til_aukahlut_tegund('Wheel Rims', 'Hjólhýsi')
+bua_til_aukahlut_tegund('Window', 'Hjólhýsi')
+bua_til_aukahlut_tegund('Body', 'Hjólhýsi')
+bua_til_aukahlut_tegund('Living Area', 'Hjólhýsi')
+bua_til_aukahlut_tegund('Upholstery Combinations', 'Hjólhýsi')
+bua_til_aukahlut_tegund('Kitchen', 'Hjólhýsi')
+bua_til_aukahlut_tegund('Sleeping Area', 'Hjólhýsi')
+bua_til_aukahlut_tegund('Washroom', 'Hjólhýsi')
+bua_til_aukahlut_tegund('Water Gas Electricity', 'Hjólhýsi')
+bua_til_aukahlut_tegund('Lighting', 'Hjólhýsi')
+bua_til_aukahlut_tegund('Heating Air Conditioning', 'Hjólhýsi')
+bua_til_aukahlut_tegund('Multimedia', 'Hjólhýsi')
+bua_til_aukahlut_tegund('Contry Specifications', 'Hjólhýsi')
+
+
+bua_til_aukahlut('Alloy spare wheel black polished with holder', '481', 'Chassis')
+bua_til_aukahlut('Alloy spare wheel black polished with holder, instead of tyre repair set', '481', 'Chassis')
+bua_til_aukahlut('Spare wheel with holder, underfloor mounting', '345', 'Chassis')
+bua_til_aukahlut('Spare wheel with holder, instead of tyre repair set, underfloor mounting', '345', 'Chassis')
+bua_til_aukahlut('Load indicator on the jockey wheel', '159', 'Chassis')
+bua_til_aukahlut('Stabilisation system KNOTT ETS Plus', '773', 'Chassis')
+bua_til_aukahlut('Hitch lock anti-theft device WINTERHOFF (ROBSTOP)', '161', 'Chassis')
+
+bua_til_aukahlut('Decrease in load capacity without any technical modifications', '0', 'Load Capacity')
+bua_til_aukahlut('Increase in load capacity without any technical modifications', '0', 'Load Capacity')
+bua_til_aukahlut('Increase in load capacity with technical modification for single-axle vehicles, including black alloy rims', '995', 'Load Capacity')
+bua_til_aukahlut('Increase in load capacity with technical modification for single-axle vehicles', '391', 'Load Capacity')
+bua_til_aukahlut('Increase in load capacity with technical modification for tandem-axle vehicles', '495', 'Load Capacity')
+bua_til_aukahlut('Increase in load capacity with technical modification for single-axle vehicles, Premium', '563', 'Load Capacity')
+
+bua_til_aukahlut('Alloy rims silver, up to model 560', '481', 'Wheel Rims')
+bua_til_aukahlut('Alloy rims silver, from model 620', '725', 'Wheel Rims')
+bua_til_aukahlut('Alloy rims black, polished, up to model 560', '604', 'Wheel Rims')
+bua_til_aukahlut('Alloy rims black, polished, from model 620', '959', 'Wheel Rims')
+
+bua_til_aukahlut('Front window with fully integrated pleated blackout blind and insect screen', '451', 'Window')
+
+bua_til_aukahlut('Rear lights with dynamic indicator', '230', 'Body')
+bua_til_aukahlut('Roof awning THULE OMNISTOR 6300, width 260 cm, pull-out depth 200 cm', '887', 'Body')
+bua_til_aukahlut('Roof awning THULE OMNISTOR 6300, width 300 cm, pull-out depth 250 cm', '952', 'Body')
+bua_til_aukahlut('Roof awning THULE OMNISTOR 6300, width 350 cm, pull-out depth 250 cm', '1085', 'Body')
+bua_til_aukahlut('Roof awning THULE OMNISTOR 6300, width 400 cm, pull-out depth 250 cm', '1359', 'Body')
+bua_til_aukahlut('Roof awning THULE OMNISTOR 6300, width 450 cm, pull-out depth 250 cm', '1534', 'Body')
+bua_til_aukahlut('Roof awning THULE OMNISTOR 6300, width 500 cm, pull-out depth 250 cm', '1706', 'Body')
+bua_til_aukahlut('Bicycle rack THULE, for drawbar, 2 bicycles, loading capacity 60 kg', '294', 'Body')
+bua_til_aukahlut('Bicycle rack THULE, for rear, 2 bicycles, loading capacity 40 kg', '306', 'Body')
+bua_til_aukahlut('Garage under bunk bed (not in conjunction with hot water heater ALDE, colouring board under children’s bed removed)', '666', 'Body')
+bua_til_aukahlut('Locker door THETFORD with central locking, 752 x 310 mm, lockable (optional)', '248', 'Body')
+
+bua_til_aukahlut('Single-post lift table', '221', 'Living Area')
+bua_til_aukahlut('Carpet in the living area, removable', '275', 'Living Area')
+bua_til_aukahlut('Carpet in the living area, removable', '219', 'Upholstery Combinations')
+
+bua_til_aukahlut('Combined hob / oven including grill THETFORD', '995', 'Kitchen')
+bua_til_aukahlut('Oven THETFORD with electric ignition, grill and interior light, 36 litres', '566', 'Kitchen')
+bua_til_aukahlut('Extractor hood DOMETIC including Hobby 10-stage speed control', '286', 'Kitchen')
+bua_til_aukahlut('Microwave DOMETIC, 20 litres', '317', 'Kitchen')
+
+bua_til_aukahlut('Bed extension for single beds including cushion', '340', 'Sleeping Area')
+bua_til_aukahlut('Cold foam mattress, with 7 zones and slatted bed base for double bed and queen-size bed', '572', 'Sleeping Area')
+bua_til_aukahlut('Cold foam mattresses, with 7 zones and slatted bed base for single beds', '596', 'Sleeping Area')
+bua_til_aukahlut('Children’s bed, 3 tiers with guard and ladder', '430', 'Sleeping Area')
+bua_til_aukahlut('Children’s bed, 3 tiers including 3rd window, with guard and ladder', '490', 'Sleeping Area')
+bua_til_aukahlut('Bedspread', '196', 'Sleeping Area')
+
+bua_til_aukahlut('Shower fitting and shower curtain for washroom with external washbasin', '160', 'Washroom')
+bua_til_aukahlut('Blackout blind including insect screen for washroom', '104', 'Washroom')
+bua_til_aukahlut('Clothes rail in the shower', '137', 'Washroom')
+
+
+bua_til_aukahlut('Fresh water tank, 47 litres', '153', 'Water Gas Electricity')
+bua_til_aukahlut('TFT control panel for lighting system and tank, including CI-BUS', '188', 'Water Gas Electricity')
+bua_til_aukahlut('Exterior awning socket, including 230 V output, satellite / TV connection', '133', 'Water Gas Electricity')
+bua_til_aukahlut('Adapter 7 - 13 pole for passenger vehicle connecting cable', '35', 'Water Gas Electricity')
+bua_til_aukahlut('City water connection', '192', 'Water Gas Electricity')
+bua_til_aukahlut('External gas socket', '226', 'Water Gas Electricity')
+bua_til_aukahlut('Electric boiler TRUMA, 14 litres (locker door can be removed)', '449', 'Water Gas Electricity')
+bua_til_aukahlut('Water pump with additional switch', '48', 'Water Gas Electricity')
+bua_til_aukahlut('Autonomy package including charge controller with booster, battery, battery sensor and battery case', '645', 'Water Gas Electricity')
+bua_til_aukahlut('Prepara on for autonomy package including charge controller with booster, battery sensor and battery case', '350', 'Water Gas Electricity')
+bua_til_aukahlut('HOBBY-CONNECT, remote control for on-board technology using app', '741', 'Water Gas Electricity')
+bua_til_aukahlut('Wireless remote control for the lighting system with one handset', '161', 'Water Gas Electricity')
+bua_til_aukahlut('Dual USB charging socket', '55', 'Water Gas Electricity')
+bua_til_aukahlut('Dual USB charging socket and children’s bed lights including USB charging socket', '93', 'Water Gas Electricity')
+
+bua_til_aukahlut('Ambient lighting, design dependent on model', '277', 'Lighting')
+
+bua_til_aukahlut('Heating system TRUMA Combi 6 E, instead of Combi 4', '791', 'Heating Air Conditioning')
+bua_til_aukahlut('Heating system TRUMA Combi 6 E, instead of Combi 6', '624', 'Heating Air Conditioning')
+bua_til_aukahlut('Auxiliary electric heater TRUMA Ultraheat including CI-BUS', '454', 'Heating Air Conditioning')
+bua_til_aukahlut('Underfloor heating up to model 540', '555', 'Heating Air Conditioning')
+bua_til_aukahlut('Underfloor heating from model 545', '689', 'Heating Air Conditioning')
+bua_til_aukahlut('Hot water heater ALDE COMPACT 3020 HE including CI-BUS', '2530', 'Heating Air Conditioning')
+bua_til_aukahlut('Hot water underfloor heating for hot water heater ALDE', '1219', 'Heating Air Conditioning')
+bua_til_aukahlut('Roof-mounted air conditioning unit DOMETIC FreshJet including CI-BUS, with heating function, without lighting, 2.2 KW', '1976', 'Heating Air Conditioning')
+bua_til_aukahlut('Prepara on for roof-mounted air conditioning unit', '69', 'Heating Air Conditioning')
+
+bua_til_aukahlut('Pull-out shelf for  flat screen TV including required connections, without video cables (Cinch)', '198', 'Multimedia')
+bua_til_aukahlut('Articulated TV bracket including required connections, without video cables (Cinch)', '234', 'Multimedia')
+bua_til_aukahlut('ATV aerial mast TELECO', '208', 'Multimedia')
+
+bua_til_aukahlut('Registra on documents', '139', 'Contry Specifications')
+"""
+
+########## END of test records
+
 
 
 
