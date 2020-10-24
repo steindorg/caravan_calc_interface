@@ -342,7 +342,7 @@ skra_vv( skra_vv_frame )
 leita_vv_frame = tk.LabelFrame( vidskiptavinur_tab, text = " Birta upplýsingar um Viðskiptavin ",width=100)
 leita_vv_frame.grid(column = 0, row = 2, sticky='nsew')
 
-birta_leit_vv_frame = tk.LabelFrame( vidskiptavinur_tab, text = " Niðurstöður ",width=100)
+birta_leit_vv_frame = tk.LabelFrame( vidskiptavinur_tab, text = " Niðurstöður  ",width=100)
 birta_leit_vv_frame.grid(column = 0, row = 3, sticky='nsew')
 
 birta_leit = birta_vv( birta_leit_vv_frame )
