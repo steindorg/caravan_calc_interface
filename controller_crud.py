@@ -7,21 +7,24 @@ from new_data_base_schema_test import Base, Viðskiptavinir, Heimilisfang, Netfa
 from sqlalchemy import inspect
 
 engine = create_engine('sqlite:///test_relations.db')
-# Bind the engine to the metadata of the Base class 
+# Bind the engine to the metadata
 Base.metadata.bind = engine
 
-# A DBSession() instance establishes all conversations with the database
 DBSession = sessionmaker(bind=engine)
 
 session = DBSession()
 
 
+#Crud og database fyrirspurnir - Brainstorm
 
 def get_vöruflokkur_nafn( nafn ):
     if session.query(Vöruflokkar).filter(Vöruflokkar.nafn==nafn).first():
         return session.query(Vöruflokkar).filter(Vöruflokkar.nafn==nafn).first()
     else:
         raise crud_exc.ItemNotStored('"{}" Vöruflokkur er ekki á skrá'.format( nafn ))
+
+def get_productCategories():
+    return session.query(Vöruflokkar).all()
 
 def get_vörutegund_nafn( nafn ):
     if session.query(Vörutegund).filter(Vörutegund.nafn==nafn).first():
@@ -40,7 +43,11 @@ def get_vörutegundir_by_vöruflokkur( nafn ):
     else:
         raise crud_exc.ItemNotStored('"{}" Vöruflokkur er ekki á skrá'.format( nafn ))
 
+def get_productModels_by_category(name):
+    return session.query(Vörutegund).join(Vöruflokkar).filter(Vöruflokkar.nafn == name).all()
 
+def get_productModels_by_category_nafn(name):
+    return [item.nafn for item in session.query(Vörutegund).join(Vöruflokkar).filter(Vöruflokkar.nafn == name).all()]
 
 def get_attributes_vörur_by_vörutegund( vörutegund, attribute ):
     tmp_arr = []
@@ -52,6 +59,13 @@ def get_attributes_vörur_by_vörutegund( vörutegund, attribute ):
         return tmp_arr
     else:
         raise crud_exc.ItemNotStored('"{}" Vörutegund er ekki á skrá'.format( nafn ))
+
+def get_products_by_productModel( productModel ):
+    return session.query(Vara).join(Vörutegund).filter(Vörutegund.nafn == productModel ).all()
+
+def get_products_by_productModel_nafn( productModel ):
+    return [item.nafn for item in session.query(Vara).join(Vörutegund).filter(Vörutegund.nafn == productModel ).all()]
+
 
 
 def get_values_aukahlutir_by_tegund_array(tegund, attribute):
@@ -72,14 +86,12 @@ def get_framleiðandi_nafn(nafn):
         raise crud_exc.ItemNotStored('"{}" Framleiðandi er ekki á skrá'.format( nafn ))
 
 def get_framleiðendur():
-    fr = session.query(Framleiðandi).all()
-    tmp_arr = []
-    if fr:
-        for item in fr:
-            tmp_arr.append(item.nafn )       
-        return tmp_arr
+    if session.query(Framleiðandi).all():
+        return session.query(Framleiðandi).all()
     else:
         raise crud_exc.ItemNotStored('"{}" Engir framleiðendur til á skrá'.format( '' ))
+def get_framleiðendur_nafn():
+    return [x.nafn for x in session.query(Framleiðandi).all()]
 
 def get_vöruflokkar():
     vf = session.query(Vöruflokkar).all()
@@ -91,7 +103,6 @@ def get_vöruflokkar():
     else:
         raise crud_exc.ItemNotStored('"{}" Engir Vöruflokkar til á skrá'.format( '' ))
 
-#print( get_vöruflokkar())
 
 def get_vara_by_tegund(vara, tegund):
     vara = session.query(Vara).join(Vörutegund).\
@@ -118,6 +129,11 @@ def get_aukahlutur_tegund(nafn):
 def get_all_aukahlutur_tegund():
         return session.query(Aukahlutir_tegund).all()
 
+def get_extras_by_extraCategory_name(name):
+    return session.query(Aukahlutir).join(Aukahlutir_tegund).filter(Aukahlutir_tegund.nafn==name).all()
+
+#print( session.query(Aukahlutir).join(Aukahlutir_tegund).filter(Aukahlutir_tegund.nafn=='Chassis').all()  )
+
 def get_aukahlutir_vara_flokkur_tegund( nafn, tegund, aukahlutur_tegund):
     vara = get_vara_by_tegund( nafn,tegund )
     #print(vara.aukahlutir)
@@ -142,6 +158,8 @@ def get_aukahlutir_vara_flokkur_tegund( nafn, tegund, aukahlutur_tegund):
     return tmp_arr
 
 
+
+# CRUD
 def bua_til_framleiðanda(nafn, tengiliður_nafn, tengiliður_eftirnafn, tengiliður_sími, tengiliður_netfang):
     if(session.query(Framleiðandi).filter(Framleiðandi.nafn==nafn).all()):
 
@@ -157,6 +175,7 @@ def bua_til_framleiðanda(nafn, tengiliður_nafn, tengiliður_eftirnafn, tengili
     print(add_framleiðandi.tengiliðir)
     session.add( add_framleiðandi  )   
     session.commit()
+    return add_framleiðandi
 
 def breyta_framleiðanda(nafn, tengiliður_nafn, tengiliður_eftirnafn, tengiliður_sími, tengiliður_netfang):
     fr = session.query(Framleiðandi).filter(Framleiðandi.nafn==nafn).first()
@@ -171,14 +190,15 @@ def breyta_framleiðanda(nafn, tengiliður_nafn, tengiliður_eftirnafn, tengili�
         raise crud_exc.ItemNotStored('"{}" Framleiðandi er ekki á skrá'.format(nafn))
 
     session.commit()
+    return fr
 
-def delete_framleiðandi(nafn):
-    fr = session.query(Framleiðandi).filter(Framleiðandi.nafn==nafn).first()
+def delete_manufacturer(rowid):
+    fr = session.query(Framleiðandi).filter(Framleiðandi.id==rowid).first()
     if fr:
         session.delete(fr)
         session.commit()            
     else:
-        raise crud_exc.ItemNotStored('"{}" Framleiðandi er ekki á skrá'.format(nafn))
+        raise crud_exc.ItemNotStored('"{}" Framleiðandi er ekki á skrá'.format(fr.nafn))
 
 def birta_framleiðanda(nafn):
     fr = session.query(Framleiðandi).filter(Framleiðandi.nafn==nafn).all()
@@ -204,6 +224,7 @@ def bua_til_vöruflokk(nafn):
     add_vöruflokkur = Vöruflokkar( nafn = nafn)
     session.add( add_vöruflokkur  )   
     session.commit()
+    return add_vöruflokkur
 
 def breyta_vöruflokk(nafn):
     vf= session.query(Vöruflokkar).filter(Vöruflokkar.nafn==nafn).first()
@@ -213,14 +234,15 @@ def breyta_vöruflokk(nafn):
         raise crud_exc.ItemNotStored('"{}" Vöruflokkur er ekki á skrá'.format(nafn))
 
     session.commit()
+    return vf
 
-def delete_vöruflokkur(nafn):
-    vf = session.query(Vöruflokkar).filter(Vöruflokkar.nafn==nafn).first()
+def delete_productCategory(rowid):
+    vf = session.query(Vöruflokkar).filter(Vöruflokkar.id==rowid).first()
     if vf:
         session.delete( vf )
         session.commit()            
     else:
-        raise crud_exc.ItemNotStored('"{}" Vöruflokkur er ekki á skrá'.format(nafn))
+        raise crud_exc.ItemNotStored('"{}" Vöruflokkur er ekki á skrá'.format(vf.nafn))
 
 def birta_vöruflokk(nafn):
     vf = session.query(Vöruflokkar).filter(Vöruflokkar.nafn==nafn).all()
@@ -244,25 +266,25 @@ def bua_til_vörutegund(nafn, vöruflokkur, framleiðandi):
     add_vörutegund.vöruflokkur =  get_vöruflokkur_nafn( vöruflokkur ) 
     session.add( add_vörutegund  )   
     session.commit()
+    return add_vörutegund
 
-def breyta_vörutegund(nafn, vöruflokkur, framleiðandi):
-    vt = session.query(Vörutegund).filter(Vörutegund.nafn==nafn).first()
-    if vt:
-        vt.nafn = nafn
-        vt.framleiðandi = get_framleiðandi_nafn( framleiðandi )
-        vt.vöruflokkur  = get_vöruflokkur_nafn( vöruflokkur )              
-    else:
-        raise crud_exc.ItemNotStored('"{}" Vörutegund er ekki á skrá'.format(nafn))
+def breyta_vörutegund(nafn, vöruflokkur, framleiðandi, rowid):
+    vt = session.query(Vörutegund).filter(Vörutegund.id==rowid).first()
+    print(vt)
+    vt.nafn = nafn
+    vt.framleiðandi = get_framleiðandi_nafn( framleiðandi )
+    vt.vöruflokkur  = get_vöruflokkur_nafn( vöruflokkur )              
 
     session.commit()
+    return vt
 
-def delete_vörutegund(nafn):
-    vt = session.query(Vörutegund).filter(Vörutegund.nafn==nafn).first()
+def delete_productModel(rowid):
+    vt = session.query(Vörutegund).filter(Vörutegund.id==rowid).first()
     if vt:
         session.delete( vt )
         session.commit()            
     else:
-        raise crud_exc.ItemNotStored('"{}" Vörutegund er ekki á skrá'.format(nafn))
+        raise crud_exc.ItemNotStored('"{}" Vörutegund er ekki á skrá'.format(vt.nafn))
 
 def birta_vörutegundir():
     vt = session.query(Vörutegund).filter(Vörutegund.nafn==nafn).all()
@@ -283,12 +305,15 @@ def bua_til_vöru(nafn, verð, vörutegund):
         raise crud_exc.ItemAlreadyStored('"{}" Vara er nú þegar á skrá!'.format(nafn))
     
     add_tegund = session.query( Vörutegund ).filter( Vörutegund.nafn == vörutegund ).first()
-    add_tegund.vörur = [ Vara(nafn = nafn, verð = verð ) ]
+    vara = Vara(nafn = nafn, verð = verð )
+    add_tegund.vörur.append( vara )
     session.add( add_tegund )
     session.commit()
+    return vara
 
-def breyta_vöru(nafn, verð, vörutegund):
-    vara = session.query(Vara).join(Vörutegund).filter(Vörutegund.nafn == vörutegund).filter(Vara.nafn==nafn).first()
+
+def breyta_vöru(nafn, verð, vörutegund, rowid):
+    vara = session.query(Vara).join(Vörutegund).filter(Vörutegund.nafn == vörutegund).filter(Vara.id==rowid).first()
     if vara:
         vara.nafn = nafn
         vara.verð = verð
@@ -297,15 +322,11 @@ def breyta_vöru(nafn, verð, vörutegund):
         raise crud_exc.ItemNotStored('"{}" Vara er ekki á skrá'.format(nafn))
 
     session.commit()
+    return vara
 
-def delete_vara(nafn, vörutegund):
-    vara = session.query(Vara).join(Vörutegund).filter(Vörutegund.nafn == vörutegund).filter(Vara.nafn==nafn).first()
-    if vara:
-        session.delete( vara )
-        session.commit()              
-    else:
-        raise crud_exc.ItemNotStored('"{}" Vara er ekki á skrá'.format(nafn))
-
+def delete_product(rowid):
+    vara = session.query(Vara).filter(Vara.id==rowid).first()
+    session.delete( vara )
     session.commit()
 
 def birta_vörur(nafn,vörutegund):
@@ -330,27 +351,34 @@ def bua_til_aukahlut_tegund(nafn, vöruflokkur):
     add_tegund.vöruflokkur = get_vöruflokkur_nafn( vöruflokkur )
     session.add( add_tegund  )
     session.commit()
+    return add_tegund
 
-def breyta_aukahlut_tegund(nafn, vöruflokkur):
-    tegund = session.query(Aukahlutir_tegund).filter(Aukahlutir_tegund.nafn==nafn).all()
+def get_ExtrasCategorys_by_category(category):
+    tegundir = session.query(Aukahlutir_tegund).join(Vöruflokkar).filter(Vöruflokkar.nafn==category).all()
+    return tegundir
+
+def get_ExtrasCategorys_by_category_names(category):
+    tegundir = session.query(Aukahlutir_tegund).join(Vöruflokkar).filter(Vöruflokkar.nafn==category).all()
+    return [item.nafn for item in tegundir]
+
+
+def breyta_aukahlut_tegund(nafn, vöruflokkur, rowid):
+    tegund = session.query(Aukahlutir_tegund).filter(Aukahlutir_tegund.id==rowid).first()
     if tegund:
         tegund.nafn = nafn
-        tegund.vöruflokkur = verð
         tegund.vöruflokkur = get_vöruflokkur_nafn( vöruflokkur )              
     else:
         raise crud_exc.ItemNotStored('"{}" Tegund aukahlutar er ekki á skrá'.format(nafn))
-
     session.commit()
+    return tegund
 
-def delete_aukahlut_tegund(nafn):
-    tegund = session.query(Aukahlutir_tegund).filter(Aukahlutir_tegund.nafn==nafn).all()
+def delete_extrasCategory(rowid):
+    tegund = session.query(Aukahlutir_tegund).filter(Aukahlutir_tegund.id==rowid).first()
     if tegund:
         session.delete( tegund )
         session.commit()              
     else:
-        raise crud_exc.ItemNotStored('"{}" Tegund aukahlutar er ekki á skrá'.format(nafn))
-
-    session.commit()
+        raise crud_exc.ItemNotStored('"{}" Tegund aukahlutar er ekki á skrá'.format(rowid))
 
 def birta_aukahluti_vara(vara, vörutegund, aukahlutur_tegund ):
     get_aukahlutir_vara_flokkur_tegund( vara, vörutegund, aukahlutur_tegund)
@@ -360,26 +388,26 @@ def bua_til_aukahlut(lýsing, verð, tegund):
     add_aukahlutur.aukahlutur_tegund = get_aukahlutur_tegund( tegund )
     session.add( add_aukahlutur )
     session.commit()
+    return add_aukahlutur
 
-def breyta_aukahlut(id_in, lýsing, verð, tegund):
-    aukahlutur = session.query(Aukahlutir).filter(Aukahlutir.id==id_in).all()
+def breyta_aukahlut(lýsing, verð, tegund, rowid):
+    aukahlutur = session.query(Aukahlutir).filter(Aukahlutir.id==rowid).all()
     if aukahlutur:
         aukahlutur.lýsing = lýsing
         aukahlutur.verð = verð
         aukahlutur.aukahlutur_tegund = get_aukahlutur_tegund( tegund )
     else:
-        raise crud_exc.ItemNotStored('"{}" aukahlutur með id ekki á skrá'.format(id_in))
+        raise crud_exc.ItemNotStored('"{}" aukahlutur með id ekki á skrá'.format(rowid))
     session.commit()
+    return aukahlutur
 
-def delete_aukahlutur(id_in):
-    aukahlutur = session.query(Aukahlutir).filter(Aukahlutir.id==id_in).all()
+def delete_extras(rowid):
+    aukahlutur = session.query(Aukahlutir).filter(Aukahlutir.id==rowid).first()
     if tegund:
-        session.delete( tegund )
+        session.delete( aukahlutur )
         session.commit()              
     else:
-        raise crud_exc.ItemNotStored('"{}" Tegund aukahlutar er ekki á skrá'.format(id_in))
-
-    session.commit()
+        raise crud_exc.ItemNotStored('"{}" Aukahlutur er ekki á skrá'.format(rowid))
 
 
 def add_aukahlutur_to_vara(vara, vörutegund, tegund):
@@ -434,6 +462,7 @@ def breyta_viðskiptavin(eiginnafn, eftirnafn, kt, simi, email, heimilisfang, po
         raise crud_exc.ItemNotStored('"{}" Viðskiptavinur er ekki á skrá'.format(eiginnafn))
 
     session.commit()
+    return vv
 
 """
 def birta_alla_vidskiptavini():
@@ -487,15 +516,15 @@ def birta_vidskiptavin(eiginnafn):
     else:
         raise crud_exc.ItemNotStored('"{}" Viðskiptavinur er ekki á skrá'.format(eiginnafn))
 
-def eyda_vidskiptavin(kt):
-    vv = session.query(Viðskiptavinir).filter(Viðskiptavinir.kt==kt).first()
+def delete_costumer(rowid):
+    vv = session.query(Viðskiptavinir).filter(Viðskiptavinir.id==rowid).first()
     if vv:
         session.delete(vv)
         session.commit()
-        print("Eyði Viðskiptavin", vv)
+        print("Eyði Viðskiptavin", vv.eiginnafn)
 
     else:
-        raise crud_exc.ItemNotStored(' Viðskiptavinur með kennitölu "{}" er ekki á skrá '.format(kt))
+        raise crud_exc.ItemNotStored(' Viðskiptavinur " {}" er ekki á skrá '.format(vv.eiginnafn))
     return 0
 
 #a_dict = get_aukahlutir_vara_flokkur_tegund('SF 390','On Tour','Chassis')[0]
