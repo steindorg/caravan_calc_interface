@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 from tkinter import font as tkFont
-import testnew_crud_controller as get_db_data
+import controller_crud as get_db_data
 import re
 
 #Test controller
@@ -16,6 +16,37 @@ class popup_menu():
         self.popup.pack()
         self.popup.pack_configure( padx = x, pady = y )
         self.popup.current(self.current)
+
+class button():
+    def __init__(self, frame, text, width, side, command, x, y):
+        self.frame = frame
+        self.width = width
+        self.command = command
+        self.but = tk.Button(frame, text = text, width=width, command = self.command)
+        self.but.pack(side=side)
+        self.but.pack_configure( padx = x, pady = y )
+
+class butt():
+    def __init__(self, frame, text, width, col, row, command, x, y):
+        self.frame = frame
+        self.width = width
+        self.command = command
+        self.but = tk.Button(frame, text = text, width=width, command = self.command)
+        self.but.grid_configure( padx = x, pady = y)
+        self.but.grid( column=col, row=row )
+
+
+class menu():
+    def __init__(self, main_frame, values, col, row, x, y, width):
+        self.value = tk.StringVar()
+        self.values = values
+        self.current = 0
+        self.popup = ttk.Combobox( main_frame, width = width, height = 85, textvariable = self.value, state='readonly')
+        self.popup['values'] = self.values
+        self.popup.grid( column = col, row = row )
+        self.popup.grid_configure( padx = x, pady = y )
+        self.popup.current(self.current)
+
 
 class Form_widget(tk.LabelFrame):
     def __init__(self, master, fields, title_name, **kwargs):
@@ -117,7 +148,7 @@ class Costumer_widget(tk.Frame):
         super().__init__(parent)
         self.title = title_name
         self.selection = None
-        self.list = Data_list_widget(self, height = 6)
+        self.list = Data_list_widget(self, height = 15, width=30)
         self.list.insert = self.insert
         self.form = Update_form(self, title_name,("eiginnafn", "eftirnafn", "kt", "símanúmer", "netfang","heimilisfang","postnumer"))
 
@@ -640,7 +671,7 @@ class Extras_widget(tk.Frame):
             get_db_data.get_ExtrasCategorys_by_category_names(self.popupmenu_productCategory.popup.get()),0, 0, 8, 8)
         
         
-        self.list = Data_list_widget(self, height = 6)
+        self.list = Data_list_widget(self, height = 6, width=55)
         self.list.insert = self.insert
         self.form = Update_form(self, title_name,("Lýsing", "Verð"))
         self.form.load_details = self.load_details
@@ -657,7 +688,7 @@ class Extras_widget(tk.Frame):
         self.list.bind_doble_click(self.show_extras)  
         self.form.bind_save(self.update_extra)
         self.form.bind_delete(self.delete)
-        self.popupmenu_extraCategory.popup.bind("<<ComboboxSelected>>", self.product_category_popup_callback)
+        self.popupmenu_productCategory.popup.bind("<<ComboboxSelected>>", self.product_category_popup_callback)
         self.popupmenu_extraCategory.popup.bind("<<ComboboxSelected>>", self.popupmenu_extraCategory_callback)
     
     def add_extra(self):
@@ -732,76 +763,236 @@ class Orders_widget(tk.Frame):
         super().__init__(parent)
         self.title = title_name
         self.selection = None
+        self.selection_itemOrder = None
+        self.costumer_order = None
         self.list = Data_list_widget(self, height = 6)
         self.list.insert = self.insert
-        self.form = Update_form(self, title_name,("Nafn", "Tengiliður forn.", "Tengiliður eftirn.", "símanúmer", "netfang"))
-
-        self.form.load_details = self.load_details
-        self.manufacturers = self.load_manufacturers()
-        self.btn_new = tk.Button(self, text = "Add new " + title_name, command = self.add_manufacturer)
-        for manufacturer in self.manufacturers:
-            self.list.insert(manufacturer)
-        self.list.pack(side=tk.LEFT, padx = 10, pady = 10)
-        self.form.pack(side=tk.LEFT, padx = 10, pady = 10)   
-        self.btn_new.pack(side=tk.BOTTOM, pady = 5)
+        self.costumers = self.load_costumers()
         
-        self.list.bind_doble_click(self.show_manufacturers)  
-        self.form.bind_save(self.update_manufacturer)
-
-    def add_manufacturer(self):
-        new_manufacturer = Add_new_record(self,
-        self.title,("Nafn", "Tengiliður forn.", "Tengiliður eftirn.", "símanúmer", "netfang"))
-        new_manufacturer.load_details = self.load_details
-        values = new_manufacturer.show()
-        added_new_manufacturer = get_db_data.bua_til_framleiðanda( 
-            nafn = values[0], 
-            tengiliður_nafn = values[1], 
-            tengiliður_sími = values[2], 
-            tengiliður_netfang = values[3],  
-            )
-        self.manufacturers.append(added_new_manufacturer)
-        self.list.insert(added_new_manufacturer)
-
-    def update_manufacturer(self):
-        if self.selection is None:
-            return
-        values = self.form.get_details()
-        self.costumers = self.load_manufacturers()
+        for costumer in self.costumers:
+            self.list.insert(costumer)
         
-        if values:
-            manufacturer = get_db_data.breyta_framleiðanda( 
-                values[0], # nafn 
-                values[1], # tengiliður nafn
-                values[2], # tengiliður eftirnafn
-                values[3], # Símanúmer
-                values[4], # Netfang
-                )
-            self.manufacturers[self.selection]
-            self.manufacturers = self.load_costumers()
-            self.list.update(manufacturer, self.selection)
+        self.list.grid(column=0,row=0, padx = 10, pady = 10)  
+        self.list.bind_doble_click(self.get_costumers) 
+        
 
-    def load_manufacturers(self):
-        return get_db_data.get_framleiðendur()
+        self.category = get_db_data.get_vöruflokkar()
+        self.model =   ['Veldu Vöruflokk']
+        self.product = ['Veldu vörumódel']
+        self.order = [ ]
+        self.added = None
+        self.div_1 = tk.LabelFrame(self)
+        self.div_1.grid(column=0,row=4)
+        self.popupmenu_productCategory = menu(self.div_1, self.category, 0, 4, 8, 8, 25)
+        self.popupmenu_productModel    = menu(self.div_1, self.model,    1, 4, 8, 8, 25) 
+        self.popupmenu_product         = menu(self.div_1, self.product,  0, 6, 4, 8, 25)
+        self.addProduct_but = butt(self.div_1,'Bæta vöru við pöntun', 25, 1, 6, self.add_product_callback, 2, 2)
+        self.extra_cat = get_db_data.get_ExtrasCategorys_by_category\
+            (self.popupmenu_productCategory.popup.get())
+       
+        self.popupmenu_extraCategory = menu(self, self.get_names( self.extra_cat ), 0, 8, 8, 8, 50)
+
+        self.extras = get_db_data.get_extras_by_extraCategory_name(self.popupmenu_extraCategory.popup.get())
+        self.popupmenu_extras = menu(self, self.get_description( self.extras ), 0, 9, 4, 8, 50)
+        self.addExtras_but = butt(self,'Bæta aukahlut við pöntun',25,0,10, self.addExtras_callback,2,2)
+
+        self.ordered_items = Data_list_widget(self, height = 7, width=60)
+        self.ordered_items.grid(column=0,row=11, padx = 10, pady = 10)
+        self.ordered_items.insert = self.insert_ordered_items
+        self.ordered_items.bind_doble_click(self.get_order_item)
+
+        self.deleteFromOrder = butt(self,'Eyða hlut úr pöntun', 20, 1, 11, self.delete_from_order,2,2)
+        self.save_order = butt(self,'Vista Pöntun', 20, 2, 11, self.save_order, 2,2)
+        #self.popupmenu_product =         menu(self, self.product,  0, 7, 8, 8, 50)
+         
+        self.popupmenu_productCategory.popup.bind( "<<ComboboxSelected>>", self.product_category_popup_callback)
+        self.popupmenu_productModel.popup.bind(    "<<ComboboxSelected>>", self.product_model_popup_callback)
+        self.popupmenu_product.popup.bind(         "<<ComboboxSelected>>", self.product_popup_callback)
+        self.popupmenu_extraCategory.popup.bind(   "<<ComboboxSelected>>", self.extraCategory_popup_callback)
+
+    def add_product_callback(self):
+        self.costumer_order.vörur.append( self.product[ self.popupmenu_product.popup.current() ] )
+        self.order.append( self.product[ self.popupmenu_product.popup.current() ] )
+        self.insert_ordered_items(self.product[ self.popupmenu_product.popup.current() ] )
+        print( self.product[ self.popupmenu_product.popup.current() ] )
+        print( self.order )
+
+    def addExtras_callback(self):
+        extra = self.extras[ self.popupmenu_extras.popup.current()]
+        text = "Aukahlutur: {}.    Verð:  {}".format(extra.lýsing, extra.verð)
+        self.ordered_items.lb.insert(tk.END, text)
+
+    def product_category_popup_callback(self, event):
+        self.model = get_db_data.get_productModels_by_category(self.popupmenu_productCategory.popup.get())
+        self.popupmenu_productModel.popup['values'] = self.get_names( self.model )
     
-    def show_manufacturers(self, index):
+    def product_model_popup_callback(self, event):
+        self.product = get_db_data.get_products_by_productModel(self.popupmenu_productModel.popup.get())
+        self.popupmenu_product.popup['values'] = self.get_names( self.product)
+
+    def extraCategory_popup_callback(self, event):
+        self.extras = get_db_data.get_extras_by_extraCategory_name(self.popupmenu_extraCategory.popup.get())
+        self.popupmenu_extras.popup['values'] = self.get_description( self.extras )
+        """
+        self.added = get_db_data.get_added_extrasToProduct_by_category(added_items, self.popupmenu_extraCategory.popup.get())
+        self.popupmenu_added_items.popup['values'] = self.get_description( self.added ) 
+        """
+    
+    def product_popup_callback(self,event):
+        print('To Do')
+
+    def load_costumers(self):
+        return get_db_data.birta_alla_vidskiptavini()
+    
+    def get_costumers(self, index):
         self.selection = index
-        self.manufacturers = self.load_manufacturers()
-        manufacturer = self.manufacturers[index]
-        self.form.load_details(manufacturer)
+        self.costumers = self.load_costumers()
+        self.costumer_order = self.costumers[index]
+        print('costumer in load',costumer.vörur)
+        #self.form.load_details(costumer)
 
-    def insert(self, manufacturer, index = tk.END):
-        text = "{}".format(manufacturer.nafn)
-        print(text)
+
+
+    def get_order_item(self, index):
+        self.selection_itemOrder = index
+        #self.costumers = self.load_costumers()
+        #costumer = self.costumers[index]
+        #print('costumer in load',costumer)
+        #self.form.load_details(costumer)
+
+    def delete_from_order(self):
+        self.order.pop( self.ordered_items.lb.curselection()[0] )
+        self.ordered_items.lb.delete( self.ordered_items.lb.curselection()[0] )
+        self.costumer_order.vörur.pop( self.ordered_items.lb.curselection()[0] )
+        print(self.ordered_items.lb.curselection()[0] )
+
+    def insert(self, costumer, index = tk.END):
+        text = "{}, {}".format(costumer.eiginnafn, costumer.eftirnafn)
         self.list.lb.insert(index, text)
+
+    def insert_ordered_items(self, items, index = tk.END):
+        text = "Tegund: {}.  Nafn: {}.   Verð í evrum:   {} ".format(items.vörutegundir.nafn, items.nafn, items.verð)
+        self.ordered_items.lb.insert(index, text)
     
-    def load_details(self, manufacturer):
+
+    def save_order(self):
+        get_db_data.make_order( self.costumer_order)
+
+    def load_details(self, costumer):
         values = (
-            manufacturer.nafn,
-            manufacturer.tengiliðir[0].eiginnafn, 
-            manufacturer.tengiliðir[0].eftirnafn, 
-            manufacturer.tengiliðir[0].netföng[0].netfang, 
-            manufacturer.tengiliðir[0].símanúmer[0].símanúmer
-            )
+            costumer.eiginnafn, 
+            costumer.eftirnafn,
+            costumer.kt, 
+            costumer.símanúmer[0].símanúmer, 
+            costumer.netföng[0].netfang, 
+            costumer.heimilisföng[0].heimilisfang, 
+            costumer.heimilisföng[0].póstnúmer)
         for entry, value in zip(self.form.entries, values):
             entry.delete(0, tk.END)
             entry.insert(0, value)
+    
+    def get_names(self, input_data):
+        out = [item.nafn for item in input_data]
+        print( out )
+        return out
+    
+    def get_description(self, input_data):
+        out = [item.lýsing for item in input_data]
+        print( out )
+        return out
+
+#Widget sem bætir Aukahlut við vöru eða aftengir aukahlut frá vöru
+class ExtrasToProducts(tk.Frame):
+    def __init__(self, parent, title_name):
+        super().__init__(parent)
+        
+        self.title = title_name
+        self.category = get_db_data.get_vöruflokkar()
+        self.model = ['Veldu Vöruflokk']
+        self.product = ['Veldu vörumódel']
+        self.added = None
+        self.popupmenu_productCategory = popup_menu(self, self.category,0, 0, 8, 8)
+        self.popupmenu_productModel = popup_menu(self, self.model, 0, 1, 8, 8) 
+        self.popupmenu_product = popup_menu(self, self.product, 0, 2, 8, 8)
+        
+        self.extra_cat = get_db_data.get_ExtrasCategorys_by_category(self.popupmenu_productCategory.popup.get())
+       
+        self.popupmenu_extraCategory = popup_menu(self, self.get_names( self.extra_cat ), 0, 3, 8, 8)
+        self.extras = get_db_data.get_extras_by_extraCategory_name(self.popupmenu_extraCategory.popup.get())
+        self.popupmenu_extras = popup_menu(self, self.get_description( self.extras ), 0, 4, 8, 8)
+        self.popupmenu_added_items = popup_menu(self, ['Added items'], 0, 4, 8, 8)
+
+        self.add_but = button(self,   'Bæta aukahlut við vöru',    20, 'left', self.addToProduct_callback,8,8)
+        self.remove_but = button(self,'Aftengja aukahlut frá vöru',20, 'left', self.removeFromProduct_callback,8,8)
+  
+        self.popupmenu_added_items.popup.configure(width=60)
+        self.popupmenu_extras.popup.configure(width=60)
+
+        self.popupmenu_productCategory.popup.bind( "<<ComboboxSelected>>", self.product_category_popup_callback)
+        self.popupmenu_productModel.popup.bind(    "<<ComboboxSelected>>", self.product_model_popup_callback)
+        self.popupmenu_product.popup.bind(         "<<ComboboxSelected>>", self.product_popup_callback)
+        self.popupmenu_extraCategory.popup.bind(   "<<ComboboxSelected>>", self.extraCategory_popup_callback)
+        self.popupmenu_extras.popup.bind(          "<<ComboboxSelected>>", self.extras_popup_callback)
+   
+    def product_category_popup_callback(self, event):
+        self.model = get_db_data.get_productModels_by_category(self.popupmenu_productCategory.popup.get())
+        self.popupmenu_productModel.popup['values'] = self.get_names( self.model )
+
+    def product_model_popup_callback(self, event):
+        self.product = get_db_data.get_products_by_productModel(self.popupmenu_productModel.popup.get())
+        print(self.product)
+        self.popupmenu_product.popup['values'] = self.get_names( self.product)
+    
+    def product_popup_callback(self, event):
+        added_items = self.product[ self.popupmenu_product.popup.current() ].aukahlutir
+        added_by_cat = get_db_data.get_added_extrasToProduct_by_category(added_items, self.popupmenu_extraCategory.popup.get())
+        self.popupmenu_added_items.popup['values'] = self.get_description( added_by_cat )
+    
+    def extraCategory_popup_callback(self, event):
+        self.extras = get_db_data.get_extras_by_extraCategory_name(self.popupmenu_extraCategory.popup.get())
+        self.popupmenu_extras.popup['values'] = self.get_description( self.extras )
+        added_items = self.product[ self.popupmenu_product.popup.current() ].aukahlutir
+        self.added = get_db_data.get_added_extrasToProduct_by_category(added_items, self.popupmenu_extraCategory.popup.get())
+        self.popupmenu_added_items.popup['values'] = self.get_description( self.added ) 
+
+    def extras_popup_callback(self, event):
+        print(self.extras[ self.popupmenu_extras.popup.current() ])
+
+    def addToProduct_callback(self):
+        get_db_data.add_extras_to_product( 
+            self.product[ self.popupmenu_product.popup.current() ], #Vara
+            self.extras[ self.popupmenu_extras.popup.current() ] #Aukahlutur
+            )
+        added_items = self.product[ self.popupmenu_product.popup.current() ].aukahlutir
+        self.added = get_db_data.get_added_extrasToProduct_by_category\
+            (added_items, self.popupmenu_extraCategory.popup.get())
+        self.popupmenu_added_items.popup['values'] = self.get_description( self.added )
+    
+    def removeFromProduct_callback(self):
+        get_db_data.remove_extras_from_product(
+            self.product[ self.popupmenu_product.popup.current() ], #Vara
+            self.added[ self.popupmenu_added_items.popup.current() ] #Aukahlutur
+        )
+        added_items = self.product[ self.popupmenu_product.popup.current() ].aukahlutir
+        self.added = get_db_data.get_added_extrasToProduct_by_category\
+            (added_items, self.popupmenu_extraCategory.popup.get())
+        self.popupmenu_added_items.popup['values'] = self.get_description( self.added )
+    
+    def get_names(self, input_data):
+        out = [item.nafn for item in input_data]
+        print( out )
+        return out
+    
+    def get_description(self, input_data):
+        out = [item.lýsing for item in input_data]
+        print( out )
+        return out
+
+
+
+
+
+
+
+
+

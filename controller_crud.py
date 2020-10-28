@@ -3,7 +3,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy import update
 from sqlalchemy.ext.declarative import declarative_base
 import crud_exceptions as crud_exc
-from new_data_base_schema_test import Base, Viðskiptavinir, Heimilisfang, Netfang, Símanúmer, Framleiðandi, Vöruflokkar, Vörutegund, Vara, Tengiliður, Aukahlutir, Aukahlutir_tegund
+from hjolhysi_com_database import Base, Viðskiptavinir, Heimilisfang, Netfang, Símanúmer, Framleiðandi, Vöruflokkar, Vörutegund, Vara, Tengiliður, Aukahlutir, Aukahlutir_tegund, Pantanir
 from sqlalchemy import inspect
 
 engine = create_engine('sqlite:///test_relations.db')
@@ -131,6 +131,15 @@ def get_all_aukahlutur_tegund():
 
 def get_extras_by_extraCategory_name(name):
     return session.query(Aukahlutir).join(Aukahlutir_tegund).filter(Aukahlutir_tegund.nafn==name).all()
+
+def get_extra_by_name_extraCategory_name(extra_name, cat_name):
+    return session.query(Aukahlutir).join(Aukahlutir_tegund)\
+        .filter(Aukahlutir_tegund.nafn==name).all()
+
+
+def get_extras_by_extraCategory_get_by_lysing(name):
+    return [item.lýsing for item in session.query(Aukahlutir).join(Aukahlutir_tegund).filter(Aukahlutir_tegund.nafn==name).all()]
+
 
 #print( session.query(Aukahlutir).join(Aukahlutir_tegund).filter(Aukahlutir_tegund.nafn=='Chassis').all()  )
 
@@ -409,8 +418,8 @@ def delete_extras(rowid):
     else:
         raise crud_exc.ItemNotStored('"{}" Aukahlutur er ekki á skrá'.format(rowid))
 
-
-def add_aukahlutur_to_vara(vara, vörutegund, tegund):
+"""
+def add_extras_to_product(vara, vörutegund, tegund):
     add_to_vara = session.query(Vara).join(Vörutegund).\
         filter(Vörutegund.nafn == vörutegund).filter(Vara.nafn == vara).first() 
     if add_to_vara:
@@ -420,6 +429,43 @@ def add_aukahlutur_to_vara(vara, vörutegund, tegund):
     
     else:
         raise crud_exc.ItemNotStored ('"{}" Vara er ekki til á skrá!'.format(vara))
+"""
+
+def add_extras_to_product(product, extra):
+    get_ids = [item.id for item in product.aukahlutir]
+    for item in get_ids:
+        if(item==extra.id):
+            print('This Product allready has this optional extra')
+            return
+    product.aukahlutir.append(extra)
+    session.commit()
+
+def remove_extras_from_product(product, extra):
+    get_ids = [item.id for item in product.aukahlutir]
+    i=0
+    for item in get_ids:
+        if(item==extra.id):
+            print('Remove optional extra from product at index', i)
+            product.aukahlutir.pop(i)
+            session.commit()
+        i+=1
+
+def get_added_extrasToProduct_by_category(extras, category):
+    tmp_arr = []
+    for item in extras:
+        if(item.aukahlutur_tegund.nafn==category):
+            tmp_arr.append( item )
+    return tmp_arr
+
+def make_order(costumer ):
+    if costumer:
+        session.commit()
+    else:
+        raise crud_exc.ItemNotStored('"{}" Viðskiptavinur er ekki á skrá'.format(eiginnafn))
+
+print(session.query(Pantanir).all())
+#print(session.query(Viðskiptavinir).filter(Viðskiptavinir.id==1).first().vörur)
+#print(session.query(Pantanir).filter(Pantanir.viðskiptavinir.eiginnafn=='Halldór').all())
 
 def bua_til_vidskiptavin(eiginnafn, eftirnafn, kt, simi, netfang, heimilisfang, postnumer ):
     if(session.query(Viðskiptavinir).filter(Viðskiptavinir.kt==kt).all()):
